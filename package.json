@@ -1,0 +1,54 @@
+{
+  "name": "object-diff-logger",
+  "version": "1.0.0",
+  "description": "A utility for logging and comparing differences between JavaScript objects.",
+  "main": "dist/object-diff-logger.js",
+  "types": "dist/object-diff-logger.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/object-diff-logger.js",
+      "require": "./dist/object-diff-logger.js",
+      "types": "./dist/object-diff-logger.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "object",
+    "diff",
+    "logger",
+    "compare",
+    "typescript",
+    "javascript"
+  ],
+  "author": "tomass2077",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomass2077/object-diff-logger.git"
+  },
+  "homepage": "https://github.com/tomass2077/object-diff-logger#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/tomass2077"
+  },
+  "bugs": {
+    "url": "https://github.com/tomass2077/object-diff-logger/issues"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.0.12",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}
