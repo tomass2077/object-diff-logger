@@ -1,3 +1,5 @@
+import { string_changes, ValueTypes, ValueTypes_To_String, Value_To_String } from './type_util';
+
 export class DiffLogger {
     private static readonly styles = {
         DEFAULT: 'color: #888',
@@ -54,6 +56,64 @@ export class DiffLogger {
             timingInfo,
             type
         });
+    }
+    logUpdateDiff(path: string, oldValue: any, newValue: any, extraInfo: string, timingInfo: string, TypeName: ValueTypes, length_limit: number): void {
+        const val_type = ValueTypes_To_String(TypeName)
+
+        const oldString = Value_To_String(oldValue, TypeName);
+        if (oldString.startsWith('"') && oldString.endsWith('"')) {
+            oldValue = oldString.slice(1, -1);
+        }
+
+        const newString = Value_To_String(newValue, TypeName);
+        if (newString.startsWith('"') && newString.endsWith('"')) {
+            newValue = newString.slice(1, -1);
+        }
+        if (oldString.length < length_limit && newString.length < length_limit) {
+            this.update_cache.push({
+                path,
+                oldValue: oldString,
+                newValue: newString,
+                extraInfo,
+                timingInfo,
+                type: val_type
+            });
+        }
+        else {
+            this.logBatchUpdates();
+            const changes = string_changes(oldString, newString, 6);
+            if (changes.length > 8 || changes.findIndex((c) => c.old_value.length > length_limit || c.new_value.length > length_limit) !== -1) {
+                this.message_cache.push({
+                    path: path, message: [
+                        { style: 'TYPE', message: ': ' },
+                        { style: 'WHITE', message: `${val_type} change too long` },
+
+                        { style: 'DEFAULT', message: ` (max 8 changes or 35 characters per change)` },
+                        { style: 'TYPE', message: `(${val_type})` }
+                    ]
+                })
+            }
+            this.message_cache.push({
+                path: path, message: [
+                    { style: 'TYPE', message: ': ' },
+                    { style: 'WHITE', message: `Long ${val_type} diff: ` }
+                ]
+            })
+            console.log(oldString.length, newString.length);
+            console.log(oldString, newString);
+            for (const change of changes) {
+                console.log(change);
+                this.message_cache.push({
+                    path: "", message: [
+                        { style: 'TYPE', message: ' '.repeat(6) },
+                        { style: "OLD_VALUE", message: (change.old_range[0] == 0 ? "" : "...") + change.old_value + (change.old_range[1] == oldString.length ? "" : "...") },
+                        { style: 'DEFAULT', message: " -> " },
+                        { style: 'NEW_VALUE', message: (change.new_range[0] == 0 ? "" : "...") + change.new_value + (change.new_range[1] == newString.length ? "" : "...") },
+                        { style: 'DEFAULT', message: `  (${change.new_range[0]}:${change.new_range[1]})` }
+                    ]
+                })
+            }
+        }
     }
 
     logKeyChange(path: string, action: 'Added' | 'Removed', keys: string[], valueType: string): void {

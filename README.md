@@ -43,12 +43,12 @@ npm install object-diff-logger
 ## Quick Start
 
 ```typescript
-import logDeepObjectDiff from "object-diff-logger";
+import { ObjectDiffLogger } from "object-diff-logger";
 
 const oldObj = { foo: 1, bar: [1, 2, 3] };
 const newObj = { foo: 2, bar: [1, 2, 4] };
 
-logDeepObjectDiff(oldObj, newObj, "comparisonLabel");
+ObjectDiffLogger(oldObj, newObj, "comparisonLabel");
 ```
 
 ---
@@ -60,14 +60,14 @@ logDeepObjectDiff(oldObj, newObj, "comparisonLabel");
 Compare an object against its previous state (tracked by a key):
 
 ```typescript
-import { logDeepObjectDiff_Stored } from "object-diff-logger";
+import { ObjectDiffLogger_stored } from "object-diff-logger";
 
 const obj = { a: 1, b: { c: 2 } };
-logDeepObjectDiff_Stored(obj, "myTrackedObject");
+ObjectDiffLogger_stored(obj, "myTrackedObject");
 
 // ...later, after changes:
 const updated = { a: 1, b: { c: 3, d: 4 } };
-logDeepObjectDiff_Stored(updated, "myTrackedObject");
+ObjectDiffLogger_stored(updated, "myTrackedObject");
 ```
 
 - The first call stores the object under the given key.
@@ -78,12 +78,12 @@ logDeepObjectDiff_Stored(updated, "myTrackedObject");
 Compare two objects directly, without storing state:
 
 ```typescript
-import logDeepObjectDiff from "object-diff-logger";
+import { ObjectDiffLogger } from "object-diff-logger";
 
 const oldObj = { foo: 1, bar: [1, 2, 3] };
 const newObj = { foo: 2, bar: [1, 2, 4] };
 
-logDeepObjectDiff(oldObj, newObj, "comparisonLabel");
+ObjectDiffLogger(oldObj, newObj, "comparisonLabel");
 ```
 
 ### 3. Clearing Stored State
@@ -91,9 +91,9 @@ logDeepObjectDiff(oldObj, newObj, "comparisonLabel");
 If you use stored diffing and want to reset all tracked objects:
 
 ```typescript
-import { logDeepObjectDiff_Clear_Storage } from "object-diff-logger";
+import { ObjectDiffLogger_clearStorage } from "object-diff-logger";
 
-logDeepObjectDiff_Clear_Storage();
+ObjectDiffLogger_clearStorage();
 ```
 
 ---
@@ -140,14 +140,14 @@ You get autocompletion and type safety for all APIs and config options.
 
 ## API
 
-### `logDeepObjectDiff_Stored(value, key, config?)`
+### `ObjectDiffLogger_stored(value, key, config?)`
 
 - `value`: The new object/value to compare.
 - `key`: A unique string key to identify the object (used for diffing against previous state).
 - `config` (optional): Configuration object (see below).
 - **Returns**: `true` if changes were detected and logged, `false` otherwise.
 
-### `logDeepObjectDiff(oldValue, newValue, label, config?)`
+### `ObjectDiffLogger(oldValue, newValue, label, config?)`
 
 - `oldValue`: The previous object/value.
 - `newValue`: The new object/value.
@@ -155,7 +155,7 @@ You get autocompletion and type safety for all APIs and config options.
 - `config` (optional): Configuration object (see below).
 - **Returns**: `true` if changes were detected and logged, `false` otherwise.
 
-### `logDeepObjectDiff_Clear_Storage()`
+### `ObjectDiffLogger_clearStorage()`
 
 Clears all stored object states (only affects stored diffing).
 
@@ -163,31 +163,34 @@ Clears all stored object states (only affects stored diffing).
 
 ## Configuration
 
-All diff functions accept an optional config object:
+All diff functions accept an optional config object.  
+**Default values are shown in parentheses.**
 
-| Option                                | Type       | Description                                                           |
-| ------------------------------------- | ---------- | --------------------------------------------------------------------- |
-| `maxDepth`                            | `number`   | Maximum depth for diffing (default: 30)                               |
-| `path_blacklist`                      | `string[]` | Exclude paths matching these patterns                                 |
-| `path_whitelist`                      | `string[]` | Only include paths matching these patterns                            |
-| `label_override`                      | `string`   | Override label for diff output                                        |
-| `suppress_circular_reference_warning` | `boolean`  | Suppress circular reference warnings                                  |
-| `suppress_depth_limit_warning`        | `boolean`  | Suppress depth limit warnings                                         |
-| `show_debug_info`                     | `boolean`  | Show debug info (timing, call stack)                                  |
-| `record_timing_info`                  | `boolean`  | Record and display time since last change per path (stored diff only) |
+| Option                                | Type       | Default | Description                                                           |
+| ------------------------------------- | ---------- | ------- | --------------------------------------------------------------------- |
+| `maxDepth`                            | `number`   | 30      | Maximum depth for diffing                                             |
+| `path_blacklist`                      | `string[]` |         | Exclude paths matching these patterns                                 |
+| `path_whitelist`                      | `string[]` |         | Only include paths matching these patterns                            |
+| `label_override`                      | `string`   |         | Override label for diff output                                        |
+| `suppress_circular_reference_warning` | `boolean`  | false   | Suppress circular reference warnings                                  |
+| `suppress_depth_limit_warning`        | `boolean`  | false   | Suppress depth limit warnings                                         |
+| `show_debug_info`                     | `boolean`  | false   | Show debug info (timing, call stack)                                  |
+| `record_timing_info`                  | `boolean`  | false   | Record and display time since last change per path (stored diff only) |
+| `length_limit`                        | `number`   | 45      | Limit the length of string representations in the diff output         |
 
 ---
 
 ## Example
 
 ```typescript
-import { logDeepObjectDiff_Stored } from "object-diff-logger";
+import { ObjectDiffLogger_stored } from "object-diff-logger";
 
-logDeepObjectDiff_Stored({ foo: 1, bar: [1, 2, 3] }, "example", {
+ObjectDiffLogger_stored({ foo: 1, bar: [1, 2, 3] }, "example", {
   maxDepth: 5,
   path_blacklist: ["bar"],
   show_debug_info: true,
   record_timing_info: true,
+  length_limit: 60, // Strings and functions longer than this will be shown as contextual diffs instead of full inline values
 });
 ```
 
@@ -196,6 +199,13 @@ logDeepObjectDiff_Stored({ foo: 1, bar: [1, 2, 3] }, "example", {
 ## Output
 
 Console output is grouped and color-coded, showing changed paths, old/new values, type changes, and more.
+
+- **Aligned columns** for old and new values, with type and timing info.
+- **String diffs**: For long string changes, a detailed diff is shown with context.
+- **Key changes**: Added/removed keys are listed.
+- **Type and length changes**: Clearly indicated.
+- **Errors**: Circular references and depth limits are reported (unless suppressed).
+- **Debug info**: Optionally shows timing and call stack for each diff.
 
 ---
 

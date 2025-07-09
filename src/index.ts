@@ -6,15 +6,16 @@ import { CHANGE_TYPES, detect_object_changes } from './change_detector';
 
 const debug_object_diff_storage: { [key: string]: { obj: any, timings: ({ [key: string]: DOMHighResTimeStamp }), last_change_time?: DOMHighResTimeStamp } } = {}
 
-export interface logDeepObjectDiff_Config {
-    maxDepth?: number; // Maximum depth to check for differences
+export interface ObjectDiffLogger_Config {
+    maxDepth?: number; // Maximum depth to check for differences(default is 30)
     path_blacklist?: string[]; // Exclude paths that match these patterns
     path_whitelist?: string[]; // Only include paths that match these patterns
     label_override?: string; // Override label for the diff output
-    suppress_circular_reference_warning?: boolean; // Suppress circular reference warnings
-    suppress_depth_limit_warning?: boolean; // Suppress depth limit warnings
-    show_debug_info?: boolean; // Show debug information in the console
-    record_timing_info?: boolean; // Record time since the last value change in some path
+    suppress_circular_reference_warning?: boolean; // Suppress circular reference warnings(default is false)
+    suppress_depth_limit_warning?: boolean; // Suppress depth limit warnings(default is false)
+    show_debug_info?: boolean; // Show debug information in the console(default is false)
+    record_timing_info?: boolean; // Record time since the last value change in some path(default is false)
+    length_limit?: number; // Limit the length of string representations in the diff output(default is 45)
 }
 function FormatPath(path: (string | number)[], remove_prefix = false): string {
     if (remove_prefix) {
@@ -100,7 +101,7 @@ function ChangeInfo(old_v: any, new_v: any, type: ValueTypes): string {
     return ""
 }
 
-export function logDeepObjectDiff_Stored(value: any, key: string, config?: logDeepObjectDiff_Config): boolean {
+export function ObjectDiffLogger_stored(value: any, key: string, config?: ObjectDiffLogger_Config): boolean {
     const logger = new DiffLogger();
     const t0 = Date.now();
     if (config === undefined) config = {}
@@ -145,12 +146,22 @@ export function logDeepObjectDiff_Stored(value: any, key: string, config?: logDe
                             timing[pathString] = t0; // Update the last change time
                         }
                     }
-                    logger.logUpdate(pathString,
-                        Value_To_String(change.oldValue, change.value_type),
-                        Value_To_String(change.newValue, change.value_type),
-                        ChangeInfo(change.oldValue, change.newValue, change.value_type),
-                        timingInfo,
-                        ValueTypes_To_String(change.value_type));
+                    if (change.value_type === ValueTypes.STRING || change.value_type === ValueTypes.FUNCTION) {
+                        logger.logUpdateDiff(pathString,
+                            change.oldValue,
+                            change.newValue,
+                            ChangeInfo(change.oldValue, change.newValue, change.value_type),
+                            timingInfo,
+                            change.value_type,
+                            config.length_limit || 45);
+                    }
+                    else
+                        logger.logUpdate(pathString,
+                            Value_To_String(change.oldValue, change.value_type),
+                            Value_To_String(change.newValue, change.value_type),
+                            ChangeInfo(change.oldValue, change.newValue, change.value_type),
+                            timingInfo,
+                            ValueTypes_To_String(change.value_type));
 
                     break;
 
@@ -213,13 +224,13 @@ export function logDeepObjectDiff_Stored(value: any, key: string, config?: logDe
     }
     return false;
 }
-export function logDeepObjectDiff_Clear_Storage() {
+export function ObjectDiffLogger_clearStorage() {
     for (const key in debug_object_diff_storage) {
         delete debug_object_diff_storage[key];
     }
 }
 
-export function logDeepObjectDiff(old_value: any, new_value: any, label: string, config?: logDeepObjectDiff_Config) {
+export function ObjectDiffLogger(old_value: any, new_value: any, label: string, config?: ObjectDiffLogger_Config) {
     const logger = new DiffLogger();
     const t0 = Date.now();
     if (config === undefined) config = {}

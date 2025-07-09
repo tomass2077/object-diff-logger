@@ -1,3 +1,4 @@
+import diff from 'fast-diff';
 export enum ValueTypes {
     // Primitives
     STRING,
@@ -77,7 +78,93 @@ export function ValueTypes_To_String(type: ValueTypes): string {
             return `Type${type}`;
     }
 }
-export function Value_To_String(value: any, type: ValueTypes, max_length: number = 35): string {
+/*
+var good = 'Good dog';
+var bad = 'Bad dog';
+
+var result = diff(good, bad);
+// [[-1, "Goo"], [1, "Ba"], [0, "d dog"]]
+
+// Respect suggested edit location (cursor position), added in v1.1
+diff('aaa', 'aaaa', 1)
+// [[0, "a"], [1, "a"], [0, "aa"]]
+
+// For convenience
+diff.INSERT === 1;
+diff.EQUAL === 0;
+diff.DELETE === -1;
+ */
+type string_change = { old_value: string, new_value: string, new_range: [number, number], old_range: [number, number] };
+export function string_changes(old_value: string, new_value: string, context_max: number): string_change[] {
+    //For exmaple in "this super string is very long" vs "this super sentance is not long"
+    //with context_max = 5
+    //should return sometihng like: ["uper string  is v", "uper sentance is n"], ["g is very long", "e is not long"]
+    let changes = diff(old_value, new_value, undefined, true);
+    const result: string_change[] = [];
+    let cur_old_pos = 0;
+    let cur_new_pos = 0;
+    if (changes.length < 2) {
+        return [{ old_value: old_value, new_value: new_value, new_range: [0, new_value.length], old_range: [0, old_value.length] }];
+    }
+    let remover: string | undefined = undefined
+    let adder: string | undefined = undefined
+    for (const change of changes) {
+        const [type, value] = change;
+
+        if (type === diff.INSERT) {
+            if (adder !== undefined) {
+                console.warn("string_changes: adder is not undefined, this should not happen");
+            }
+            adder = value;
+            cur_new_pos += value.length;
+        } else if (type === diff.DELETE) {
+            if (remover !== undefined) {
+                console.warn("string_changes: remover is not undefined, this should not happen");
+            }
+            remover = value;
+            cur_old_pos += value.length;
+        } else if (type === diff.EQUAL) {
+            // Equal text
+            const equal_length = value.length;
+            if (remover !== undefined || adder !== undefined) {
+                const old_str = old_value.substring(Math.max(0, cur_old_pos - (remover ? remover.length : 0) - context_max), Math.min(old_value.length, cur_old_pos + context_max));
+                const new_str = new_value.substring(Math.max(0, cur_new_pos - (adder ? adder.length : 0) - context_max), Math.min(new_value.length, cur_new_pos + context_max));
+
+                result.push({
+                    old_value: old_str,
+                    new_value: new_str,
+                    new_range: [Math.max(0, cur_new_pos - (adder ? adder.length : 0) - context_max), Math.min(new_value.length, cur_new_pos + context_max)],
+                    old_range: [Math.max(0, cur_old_pos - (remover ? remover.length : 0) - context_max), Math.min(old_value.length, cur_old_pos + context_max)]
+                });
+                remover = undefined; // Reset after processing
+                adder = undefined; // Reset after processing
+            }
+            cur_old_pos += equal_length;
+            cur_new_pos += equal_length;
+
+        }
+
+    }
+    if (remover !== undefined || adder !== undefined) {
+        const old_str = old_value.substring(Math.max(0, cur_old_pos - (remover ? remover.length : 0) - context_max), Math.min(old_value.length, cur_old_pos + context_max));
+        const new_str = new_value.substring(Math.max(0, cur_new_pos - (adder ? adder.length : 0) - context_max), Math.min(new_value.length, cur_new_pos + context_max));
+
+        result.push({
+            old_value: old_str,
+            new_value: new_str,
+            new_range: [Math.max(0, cur_new_pos - (adder ? adder.length : 0) - context_max), Math.min(new_value.length, cur_new_pos + context_max)],
+            old_range: [Math.max(0, cur_old_pos - (remover ? remover.length : 0) - context_max), Math.min(old_value.length, cur_old_pos + context_max)]
+        });
+        remover = undefined; // Reset after processing
+        adder = undefined; // Reset after processing
+    }
+
+    return result;
+
+}
+
+
+export function Value_To_String(value: any, type: ValueTypes): string {
     //rn just placeholders for every type
 
     switch (type) {
@@ -87,14 +174,7 @@ export function Value_To_String(value: any, type: ValueTypes, max_length: number
         case ValueTypes.NULL: { return "null"; }
         case ValueTypes.UNDEFINED: { return "undefined"; }
         case ValueTypes.FUNCTION: {
-
-            let str: string = value.toString().replace("\n", " ").replace(/\s+/g, ' ').trim() //nemove newlines
-            if (str.length > max_length) {
-                const cut_length = Math.floor(max_length / 2);
-                str = str.substring(0, cut_length) + " ... " + str.substring(str.length - cut_length, str.length);
-            }
-
-            return value.name + (value.name.length > 0 ? " " : "") + str;
+            return value.name + (value.name.length > 0 ? " " : "") + value.toString().replace("\n", " ").replace(/\s+/g, ' ').trim();
         }
         case ValueTypes.SYMBOL: { return value.toString(); }
         case ValueTypes.BIGINT: { return value.toString() + "n"; }
