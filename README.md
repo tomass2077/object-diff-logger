@@ -117,6 +117,7 @@ A path is a string representing the location of a value in the object, similar t
 - `orders[].id` — matches the `id` property of any element in the `orders` array
 - `*` — matches any path
 - `settings.theme` — matches the `theme` property in `settings`
+- `settings.theme*` — matches the `theme` property in `settings`, and any properties or indexes inside of it
 
 You can use these patterns in `path_blacklist` and `path_whitelist` to include or exclude changes at specific locations.
 
@@ -134,13 +135,6 @@ You get autocompletion and type safety for all APIs and config options.
 - Uses deep comparison and cloning (via lodash) for accuracy.
 - For very large or deeply nested objects, consider tuning `maxDepth` for better performance.
 - Path filtering (`path_blacklist`, `path_whitelist`) can help reduce unnecessary diffing and logging.
-
----
-
-## Compatibility
-
-- Works in both Node.js and modern browsers.
-- Console output uses standard `console.info`/`console.group` APIs.
 
 ---
 
