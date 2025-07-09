@@ -207,6 +207,8 @@ Console output is grouped and color-coded, showing changed paths, old/new values
 - **Errors**: Circular references and depth limits are reported (unless suppressed).
 - **Debug info**: Optionally shows timing and call stack for each diff.
 
+![Diff Output Example](https://github.com/tomass2077/object-diff-logger/blob/main/assets/demo_image.png?raw=true)
+
 ---
 
 ## Contributing
