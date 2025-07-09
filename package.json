@@ -1,16 +1,17 @@
 {
   "name": "object-diff-logger",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A utility for logging and comparing differences between JavaScript objects.",
-  "main": "dist/object-diff-logger.js",
-  "types": "dist/object-diff-logger.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/object-diff-logger.js",
-      "require": "./dist/object-diff-logger.js",
-      "types": "./dist/object-diff-logger.d.ts"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md",

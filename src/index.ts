@@ -6,7 +6,7 @@ import { CHANGE_TYPES, detect_object_changes } from './change_detector';
 
 const debug_object_diff_storage: { [key: string]: { obj: any, timings: ({ [key: string]: DOMHighResTimeStamp }), last_change_time?: DOMHighResTimeStamp } } = {}
 
-interface logDeepObjectDiff_Config {
+export interface logDeepObjectDiff_Config {
     maxDepth?: number; // Maximum depth to check for differences
     path_blacklist?: string[]; // Exclude paths that match these patterns
     path_whitelist?: string[]; // Only include paths that match these patterns
@@ -100,7 +100,7 @@ function ChangeInfo(old_v: any, new_v: any, type: ValueTypes): string {
     return ""
 }
 
-function logDeepObjectDiff_Stored(value: any, key: string, config?: logDeepObjectDiff_Config): boolean {
+export function logDeepObjectDiff_Stored(value: any, key: string, config?: logDeepObjectDiff_Config): boolean {
     const logger = new DiffLogger();
     const t0 = Date.now();
     if (config === undefined) config = {}
@@ -213,13 +213,13 @@ function logDeepObjectDiff_Stored(value: any, key: string, config?: logDeepObjec
     }
     return false;
 }
-function logDeepObjectDiff_Clear_Storage() {
+export function logDeepObjectDiff_Clear_Storage() {
     for (const key in debug_object_diff_storage) {
         delete debug_object_diff_storage[key];
     }
 }
 
-function logDeepObjectDiff(old_value: any, new_value: any, label: string, config?: logDeepObjectDiff_Config) {
+export function logDeepObjectDiff(old_value: any, new_value: any, label: string, config?: logDeepObjectDiff_Config) {
     const logger = new DiffLogger();
     const t0 = Date.now();
     if (config === undefined) config = {}
@@ -304,13 +304,3 @@ function logDeepObjectDiff(old_value: any, new_value: any, label: string, config
     }
     return false;
 }
-
-
-export default logDeepObjectDiff;
-
-export {
-    logDeepObjectDiff_Stored,
-    logDeepObjectDiff_Config,
-    logDeepObjectDiff_Clear_Storage,
-};
-
