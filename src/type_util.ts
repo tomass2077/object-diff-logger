@@ -193,7 +193,7 @@ export function Value_To_String(value: any, type: ValueTypes): string {
         case ValueTypes.URL: { return value.toString(); }
         case ValueTypes.BLOB: { return `[Blob(${value?.size} bytes, ${value?.type || "unknown"})]`; }
         case ValueTypes.FILE: { return `[File(${value.name || "unnamed"}, ${value.size} bytes)]`; }
-        case ValueTypes.FORMDATA: { return `[Formdata(${Array(value.keys()).length})]`; } // Should have been parsed by DebugValueDiff_handler
+        case ValueTypes.FORMDATA: { return `[FormData(${Array(value.keys()).length})]`; } // Should have been parsed by DebugValueDiff_handler
         case ValueTypes.HTMLELEMENT: { return "[HTMLElement]"; }//needs further processing
         case ValueTypes.NODE: { return "[Node]"; }
         case ValueTypes.EVENT: { return `[Event${value?.type ? ": " + value.type : ""}]`; }

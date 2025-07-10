@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash'
+import { cloneDeep, isNumber, min } from 'lodash'
 import { GetValueType, Value_To_String, ValueTypes, ValueTypes_To_String } from './type_util';
 import { DiffLogger } from './smart_logger';
 import { CHANGE_TYPES, detect_object_changes } from './change_detector';
@@ -30,45 +30,122 @@ function FormatPath(path: (string | number)[], remove_prefix = false): string {
     return '$' + path.map(p => typeof p === 'number' ? `[${p}]` : `.${p}`).join('');
 }
 
-function path_checker(pattern: string, path: (string | number)[]): boolean {
+function path_checker(pattern: string, path_list: (string | number)[]): boolean {
     pattern = pattern.trim()
-    const formatted_path = FormatPath(path, true);
+    if (pattern.startsWith('$'))
+        pattern = pattern.substring(1);
+    if (pattern.startsWith('.'))
+        pattern = pattern.substring(1);
+
+    const formatted_path = FormatPath(path_list, true);
     if (pattern === formatted_path) return true; // If the path is exactly the same as the pattern, accept it
     if (pattern === '*') return true; // If the pattern is '*', accept any path
-    if (pattern.endsWith('*') && formatted_path.startsWith(pattern.slice(0, -1))) return true;
 
-    //split using regex at [n] or []
-    const split_at_indexes_pattern = pattern.split(/(\[\d+\]|\[\])/).filter(p => p !== '');
-    const split_at_indexes_path = formatted_path.split(/(\[\d+\]|\[\])/).filter(p => p !== '');
-    if ((pattern.endsWith("*") && split_at_indexes_pattern.length < split_at_indexes_path.length) || split_at_indexes_path.length === split_at_indexes_path.length) {
-        if (split_at_indexes_pattern.length === 0 || split_at_indexes_path.length === 0) return false; // If either pattern or path is empty, return false
-
-        if (pattern.endsWith("*")) {
-            split_at_indexes_pattern[split_at_indexes_pattern.length - 1] = split_at_indexes_pattern[split_at_indexes_pattern.length - 1].slice(0, -1); // Remove the trailing '*' from the pattern
+    const parts = pattern.split(/(\*\*|\*|\[\])/).filter(part => part !== '');
+    let processed_parts = "";
+    let i = -1;
+    for (const part of parts) {
+        i++;
+        const is_index_skip = part === '[]';
+        const is_long_wildcard = part === '**';
+        const is_wildcard = part === '*';
+        if (!is_index_skip && !is_wildcard && !is_long_wildcard) {
+            processed_parts += part;
+            if (!formatted_path.startsWith(processed_parts))
+                return false; // If the path does not start with the processed parts, reject it
+            continue; // If the path starts with the processed parts, continue to the next part
         }
-        const min_length = Math.min(split_at_indexes_pattern.length, split_at_indexes_path.length);
-        for (let i = 0; i < min_length; i++) {
-            const pattern_part = split_at_indexes_pattern[i].trim();
-            const path_part = split_at_indexes_path[i].trim();
-            if (pattern_part === path_part) continue; // If the parts are equal, continue
-            //if pattern_part === "[]" and path_part is [n]. btw regex that 
-            if (pattern_part === "[]" && path_part.startsWith("[") && path_part.endsWith("]")) {
-                continue; // If the pattern part is "[]" and the path part is an index, continue
+        if (formatted_path.startsWith(part)) {
+            processed_parts += part;
+            continue;
+        }
+        if (is_index_skip && formatted_path.startsWith(processed_parts + '[')) {
+            //check if the next part of the formatted path starts with [n]
+            const next_part = formatted_path.substring(processed_parts.length + 1);
+            const next_index = next_part.indexOf(']');
+            if (next_index !== -1) {
+                //index
+                const index_part = next_part.substring(0, next_index);
+                //check if its a number
+                if (index_part.length > 0 && isNumber(parseInt(index_part))) {
+                    //the cutout
+                    const cutout = formatted_path.substring(processed_parts.length, processed_parts.length + next_index + 2);
+                    processed_parts += cutout; // Add the index part to the processed parts
+                    continue
+                }
             }
-            return false; // If any part does not match, return false
         }
-        return true; // If all parts match, return true
+        if (is_long_wildcard) {
+            const next_part = formatted_path.substring(processed_parts.length);
+            if (i === parts.length - 1) {
+                return true; // If we are at the last part and it is a wildcard, accept it
+            }
+
+            let next_elem = parts[i + 1];
+            if (next_elem === '[]') {
+                const next_brace = next_part.indexOf('[');
+                if (next_brace !== -1) {
+                    //if the next part is a bracket, skip to the next part
+                    processed_parts += next_part.substring(0, next_brace);
+                    continue;
+                }
+            }
+            else {
+                const next_index = next_part.indexOf(next_elem);
+                if (next_index !== -1) {
+                    //if the next part is a string, skip to the next part
+                    processed_parts += next_part.substring(0, next_index);
+                    continue;
+                }
+            }
+        }
+        if (is_wildcard) {
+            const next_part = formatted_path.substring(processed_parts.length).split(/(\[|\.)/)[0];
+            //split at the next backet or dot
+            if (next_part.length > 0) {
+                processed_parts += next_part; // Add the next part to the processed parts
+                continue; // Continue to the next part
+            }
+        }
+        // If we reach here, it means the path does not match the pattern
+        return false;
+
+    }
+    if (processed_parts === formatted_path) {
+        return true; // If the processed parts match the formatted path, accept it
     }
     return false
 }
-//function test_pattern_checker(expected: boolean, pattern: string, path: (string | number)[]) {
-//    if (path_checker(pattern, path) !== expected) {
-//        console.error(`ERRR: Pattern check failed for pattern "${pattern}" and path "${FormatPath(path)}". Expected ${expected}, but got ${!expected}.`);
+//function test_pattern_checker(expected: boolean, pattern: string, path: string) {
+//    if (path_checker(pattern, [path]) !== expected) {
+//        console.error(`ERRR: Pattern check failed for pattern "${pattern}" and path "${FormatPath([path])}". Expected ${expected}, but got ${!expected}.`);
 //    }
 //    else {
-//        console.log(`      Pattern check passed for pattern "${pattern}" and path "${FormatPath(path)}".`);
+//        console.log(`      Pattern check passed for pattern "${pattern}" and path "${FormatPath([path])}".`);
 //    }
 //}
+//test_pattern_checker(true, '$', '');
+//test_pattern_checker(true, '$.a', 'a');
+//test_pattern_checker(true, '$.a.b', 'a.b');
+//test_pattern_checker(true, '$.a.*.c', 'a.b.c');
+//test_pattern_checker(true, '$.a.**.c', 'a.b.c');
+//test_pattern_checker(true, '$.a.**.d', 'a.b.c.d');
+//test_pattern_checker(false, '$.a.*.d', 'a.b.c.d');
+//test_pattern_checker(true, '$.a.*', 'a.b');
+//test_pattern_checker(true, '$.a.**', 'a.b.c');
+//test_pattern_checker(true, '$.**.d', 'a.b.c.d');
+//test_pattern_checker(true, '**.d', 'a.b.c.d');
+////some false statements
+//test_pattern_checker(false, '$.a.b.c', 'a.b');
+//test_pattern_checker(false, '$.a.b.c', 'a.b.c.d');
+//test_pattern_checker(false, '$.a.b[].c', 'a.b.c');
+//test_pattern_checker(false, '$.a.b[]c', 'a.b.c');
+//test_pattern_checker(true, '$.a.b[]c', 'a.b[]c');
+//test_pattern_checker(true, '$.a.b[]c', 'a.b[2]c');
+//test_pattern_checker(true, '$.a.b[]c', 'a.b[55]c');
+//test_pattern_checker(true, '$.a.b[55]c', 'a.b[55]c');
+
+
 
 function ChangeInfo(old_v: any, new_v: any, type: ValueTypes): string {
     if (type == ValueTypes.DATE) {

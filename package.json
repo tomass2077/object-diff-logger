@@ -1,6 +1,6 @@
 {
   "name": "object-diff-logger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A utility for logging and comparing differences between JavaScript objects.",
   "main": "dist/index.js",
   "module": "dist/index.js",

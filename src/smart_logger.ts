@@ -99,10 +99,7 @@ export class DiffLogger {
                     { style: 'WHITE', message: `Long ${val_type} diff: ` }
                 ]
             })
-            console.log(oldString.length, newString.length);
-            console.log(oldString, newString);
             for (const change of changes) {
-                console.log(change);
                 this.message_cache.push({
                     path: "", message: [
                         { style: 'TYPE', message: ' '.repeat(6) },
@@ -244,7 +241,7 @@ export class DiffLogger {
         this.update_cache = []; // Clear the cache after logging
     }
 
-    flushMessages(title: string, startTime: DOMHighResTimeStamp, show_debug_info: boolean) {//retunr the number of messages flushed
+    flushMessages(title: string, startTime: DOMHighResTimeStamp, show_debug_info: boolean) {//return the number of messages flushed
         this.logBatchUpdates(); // Ensure any pending updates are logged first
         if (this.message_cache.length === 0) return 0;
         const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';

@@ -3,8 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/object-diff-logger.svg)](https://www.npmjs.com/package/object-diff-logger)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<!-- [![CI](https://github.com/tomass2077/object-diff-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/tomass2077/object-diff-logger/actions) -->
-
 A TypeScript/JavaScript utility for logging and comparing deep differences between objects, arrays, Maps, Sets, and more. Designed for debugging, testing, and tracking changes in complex data structures.
 
 ---
@@ -34,7 +32,7 @@ A TypeScript/JavaScript utility for logging and comparing deep differences betwe
 
 ## Installation
 
-```sh
+```bash
 npm install object-diff-logger
 ```
 
@@ -107,7 +105,7 @@ A path is a string representing the location of a value in the object, similar t
 
 - Dot notation for properties: `a.b.c`
 - Bracket notation for arrays: `foo[2].bar`
-- Wildcards: `*` (any path), `foo.*` (any property inside `foo`)
+- Wildcards: `*` (any property or index at this level), `**` (any nested path, any depth)
 - Array wildcards: `bar[]` (any index in array `bar`), `foo[].baz` (property `baz` in any element of array `foo`)
 - Mixed: `root[].items[].id` (all `id` fields in all `items` arrays in all `root` array elements)
 
@@ -115,9 +113,10 @@ A path is a string representing the location of a value in the object, similar t
 
 - `user.profile.name` — matches the `name` property inside `profile` inside `user`
 - `orders[].id` — matches the `id` property of any element in the `orders` array
-- `*` — matches any path
+- `*` — matches any path at the root
 - `settings.theme` — matches the `theme` property in `settings`
 - `settings.theme*` — matches the `theme` property in `settings`, and any properties or indexes inside of it
+- `**.id` — matches any `id` property at any depth
 
 You can use these patterns in `path_blacklist` and `path_whitelist` to include or exclude changes at specific locations.
 
@@ -166,17 +165,17 @@ Clears all stored object states (only affects stored diffing).
 All diff functions accept an optional config object.  
 **Default values are shown in parentheses.**
 
-| Option                                | Type       | Default | Description                                                           |
-| ------------------------------------- | ---------- | ------- | --------------------------------------------------------------------- |
-| `maxDepth`                            | `number`   | 30      | Maximum depth for diffing                                             |
-| `path_blacklist`                      | `string[]` |         | Exclude paths matching these patterns                                 |
-| `path_whitelist`                      | `string[]` |         | Only include paths matching these patterns                            |
-| `label_override`                      | `string`   |         | Override label for diff output                                        |
-| `suppress_circular_reference_warning` | `boolean`  | false   | Suppress circular reference warnings                                  |
-| `suppress_depth_limit_warning`        | `boolean`  | false   | Suppress depth limit warnings                                         |
-| `show_debug_info`                     | `boolean`  | false   | Show debug info (timing, call stack)                                  |
-| `record_timing_info`                  | `boolean`  | false   | Record and display time since last change per path (stored diff only) |
-| `length_limit`                        | `number`   | 45      | Limit the length of string representations in the diff output         |
+| Option                                        | Type       | Description                                                           |
+| --------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| `maxDepth` (30)                               | `number`   | Maximum depth for diffing                                             |
+| `path_blacklist`                              | `string[]` | Exclude paths matching these patterns                                 |
+| `path_whitelist`                              | `string[]` | Only include paths matching these patterns                            |
+| `label_override`                              | `string`   | Override label for diff output                                        |
+| `suppress_circular_reference_warning` (false) | `boolean`  | Suppress circular reference warnings                                  |
+| `suppress_depth_limit_warning` (false)        | `boolean`  | Suppress depth limit warnings                                         |
+| `show_debug_info` (false)                     | `boolean`  | Show debug info (timing, call stack)                                  |
+| `record_timing_info` (false)                  | `boolean`  | Record and display time since last change per path (stored diff only) |
+| `length_limit` (45)                           | `number`   | Limit the length of string representations in the diff output         |
 
 ---
 
@@ -186,10 +185,11 @@ All diff functions accept an optional config object.
 import { ObjectDiffLogger_stored } from "object-diff-logger";
 
 ObjectDiffLogger_stored({ foo: 1, bar: [1, 2, 3] }, "example", {
-  maxDepth: 5,
-  path_blacklist: ["bar"],
-  show_debug_info: true,
-  record_timing_info: true,
+  maxDepth: 5, // Limit the depth
+  path_blacklist: ["bar[1]"], // Don't log changes in the second element of bar
+  path_whitelist: ["bar"], // Only show changes inside of bar
+  show_debug_info: true, // Show who called the function, and how long the diff took
+  record_timing_info: true, // Show time since last change to value
   length_limit: 60, // Strings and functions longer than this will be shown as contextual diffs instead of full inline values
 });
 ```
